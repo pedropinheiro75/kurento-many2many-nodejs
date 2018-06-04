@@ -46,6 +46,7 @@ var idCounter = 0;
 var candidatesQueue = {};
 var kurentoClient = null;
 var presenter = null;
+var presenters = [];
 var viewers = [];
 var noPresenterMessage = 'No active presenter. Try again later...';
 
@@ -93,7 +94,7 @@ wss.on('connection', function(ws) {
 
         switch (message.id) {
         case 'presenter':
-			startPresenter(sessionId, ws, message.sdpOffer, function(error, sdpAnswer) {
+			startPresenter(sessionId, message.presenterName, ws, message.sdpOffer, function(error, sdpAnswer) {
 				if (error) {
 					return ws.send(JSON.stringify({
 						id : 'presenterResponse',
@@ -167,59 +168,59 @@ function getKurentoClient(callback) {
     });
 }
 
-function startPresenter(sessionId, ws, sdpOffer, callback) {
-	clearCandidatesQueue(sessionId);
+function startPresenter(sessionID, presenterName, ws, sdpOffer, callback) {
+	clearCandidatesQueue(sessionID);
 
-	if (presenter !== null) {
-		stop(sessionId);
+	if (presenters[sessionID] !== null) {
+		stop(sessionID);
 		return callback("Another user is currently acting as presenter. Try again later ...");
 	}
 
-	presenter = {
-		id : sessionId,
+    presenters[sessionID] = {
+		id : sessionID,
 		pipeline : null,
 		webRtcEndpoint : null
-	}
+	};
 
 	getKurentoClient(function(error, kurentoClient) {
 		if (error) {
-			stop(sessionId);
+			stop(sessionID);
 			return callback(error);
 		}
 
-		if (presenter === null) {
-			stop(sessionId);
+		if (presenters[sessionID] === null) {
+			stop(sessionID);
 			return callback(noPresenterMessage);
 		}
 
 		kurentoClient.create('MediaPipeline', function(error, pipeline) {
 			if (error) {
-				stop(sessionId);
+				stop(sessionID);
 				return callback(error);
 			}
 
-			if (presenter === null) {
-				stop(sessionId);
+			if (presenters[sessionID] === null) {
+				stop(sessionID);
 				return callback(noPresenterMessage);
 			}
 
-			presenter.pipeline = pipeline;
+            presenters[sessionID].pipeline = pipeline;
 			pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
 				if (error) {
-					stop(sessionId);
+					stop(sessionID);
 					return callback(error);
 				}
 
-				if (presenter === null) {
-					stop(sessionId);
+				if (presenters[sessionID] === null) {
+					stop(sessionID);
 					return callback(noPresenterMessage);
 				}
 
-				presenter.webRtcEndpoint = webRtcEndpoint;
+                presenters[sessionID].webRtcEndpoint = webRtcEndpoint;
 
-                if (candidatesQueue[sessionId]) {
-                    while(candidatesQueue[sessionId].length) {
-                        var candidate = candidatesQueue[sessionId].shift();
+                if (candidatesQueue[sessionID]) {
+                    while(candidatesQueue[sessionID].length) {
+                        var candidate = candidatesQueue[sessionID].shift();
                         webRtcEndpoint.addIceCandidate(candidate);
                     }
                 }
@@ -234,12 +235,12 @@ function startPresenter(sessionId, ws, sdpOffer, callback) {
 
 				webRtcEndpoint.processOffer(sdpOffer, function(error, sdpAnswer) {
 					if (error) {
-						stop(sessionId);
+						stop(sessionID);
 						return callback(error);
 					}
 
-					if (presenter === null) {
-						stop(sessionId);
+					if (presenters[sessionID] === null) {
+						stop(sessionID);
 						return callback(noPresenterMessage);
 					}
 
@@ -248,7 +249,7 @@ function startPresenter(sessionId, ws, sdpOffer, callback) {
 
                 webRtcEndpoint.gatherCandidates(function(error) {
                     if (error) {
-                        stop(sessionId);
+                        stop(sessionID);
                         return callback(error);
                     }
                 });
