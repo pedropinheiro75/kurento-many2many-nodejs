@@ -23,14 +23,26 @@ window.onload = function() {
 	console = new Console();
 	video = document.getElementById('video');
 
-	document.getElementById('call').addEventListener('click', function() { presenter(); } );
-	document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
-	document.getElementById('terminate').addEventListener('click', function() { stop(); } );
-}
+    document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
+    document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
+    document.getElementById('join').addEventListener('click', function() { viewer(); } );
+    document.getElementById('terminate').addEventListener('click', function() { stop(); } );
+
+	var mock = [{sessionID:1,name:"pedro"}];
+	// Presenters table
+	var table = $('#presenters_table');
+    var tr = $('<tr>');
+	mock.forEach(function (mock) {
+        tr.append('<td>' + mock.sessionID + '</td>');
+        tr.append('<td><a id="viewer" href="#">' + mock.name + '</a></td>');
+        tr.append('<td><a id="join" href="#" class="btn btn-primary">' + 'JOIN' + '</a></td>');
+	});
+    table.append(tr);
+};
 
 window.onbeforeunload = function() {
 	ws.close();
-}
+};
 
 ws.onmessage = function(message) {
 	var parsedMessage = JSON.parse(message.data);
@@ -52,7 +64,7 @@ ws.onmessage = function(message) {
 	default:
 		console.error('Unrecognized message', parsedMessage);
 	}
-}
+};
 
 function presenterResponse(message) {
 	if (message.response != 'accepted') {
@@ -81,7 +93,7 @@ function presenter() {
 		var options = {
 			localVideo: video,
 			onicecandidate : onIceCandidate
-	    }
+	    };
 
 		webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendonly(options, function(error) {
 			if(error) return onError(error);
@@ -96,7 +108,8 @@ function onOfferPresenter(error, offerSdp) {
 
 	var message = {
 		id : 'presenter',
-		sdpOffer : offerSdp
+		sdpOffer : offerSdp,
+		presenterName: document.getElementById('presenter_name').value
 	};
 	sendMessage(message);
 }
@@ -108,7 +121,7 @@ function viewer() {
 		var options = {
 			remoteVideo: video,
 			onicecandidate : onIceCandidate
-		}
+		};
 
 		webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options, function(error) {
 			if(error) return onError(error);
@@ -119,12 +132,12 @@ function viewer() {
 }
 
 function onOfferViewer(error, offerSdp) {
-	if (error) return onError(error)
+	if (error) return onError(error);
 
 	var message = {
 		id : 'viewer',
 		sdpOffer : offerSdp
-	}
+	};
 	sendMessage(message);
 }
 
