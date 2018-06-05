@@ -163,8 +163,9 @@ function onIceCandidate(candidate) {
 	   console.log('Local candidate' + JSON.stringify(candidate));
 
 	   var message = {
-	      id : 'onIceCandidate',
-	      candidate : candidate
+	   		id : 'onIceCandidate',
+	      	candidate : candidate,
+			presenterID: presenterSessionID
 	   };
 	   sendMessage(message);
 }

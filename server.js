@@ -146,7 +146,7 @@ wss.on('connection', function(ws) {
             break;
 
         case 'onIceCandidate':
-            onIceCandidate(sessionId, message.candidate);
+            onIceCandidate(sessionId, message.candidate, message.presenterID);
             break;
 
         default:
@@ -361,7 +361,7 @@ function clearCandidatesQueue(sessionId) {
 
 function stop(sessionId) {
 	if (sessionId in presenters && presenters[sessionId].id == sessionId) {
-		for (var i in viewers[sessionID]) {
+		for (var i in viewers[sessionId]) {
 			var viewer = viewers[sessionId][i];
 			if (viewer.ws) {
 				viewer.ws.send(JSON.stringify({
@@ -392,16 +392,16 @@ function stop(sessionId) {
     // }
 }
 
-function onIceCandidate(sessionId, _candidate) {
+function onIceCandidate(sessionId, _candidate, presenterID) {
     var candidate = kurento.getComplexType('IceCandidate')(_candidate);
 
-    if (presenter && presenter.id === sessionId && presenter.webRtcEndpoint) {
+    if (presenters[presenterID] && presenters[presenterID].id === sessionId && presenters[presenterID].webRtcEndpoint) {
         console.info('Sending presenter candidate');
-        presenter.webRtcEndpoint.addIceCandidate(candidate);
+        presenters[presenterID].webRtcEndpoint.addIceCandidate(candidate);
     }
-    else if (viewers[sessionId] && viewers[sessionId].webRtcEndpoint) {
+    else if ((presenterID in viewers) && (sessionId in viewers[presenterID]) && viewers[presenterID][sessionId].webRtcEndpoint) {
         console.info('Sending viewer candidate');
-        viewers[sessionId].webRtcEndpoint.addIceCandidate(candidate);
+        viewers[presenterID][sessionId].webRtcEndpoint.addIceCandidate(candidate);
     }
     else {
         console.info('Queueing candidate');
