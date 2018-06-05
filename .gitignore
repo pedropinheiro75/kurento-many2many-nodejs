@@ -1,1 +1,4 @@
 .idea/*
+docker/.env
+node_modules/*
+static/bower_components/*
