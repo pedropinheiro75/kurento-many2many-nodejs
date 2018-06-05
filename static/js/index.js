@@ -18,14 +18,15 @@
 var ws = new WebSocket('wss://' + location.host + '/one2many');
 var video;
 var webRtcPeer;
+var presenterSessionID = 1;
 
 window.onload = function() {
 	console = new Console();
 	video = document.getElementById('video');
 
+    getPresenters();
+
     document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
-    // document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
-    // document.getElementById('join').addEventListener('click', function() { viewer(); } );
     document.getElementById('terminate').addEventListener('click', function() { stop(); } );
     document.getElementById('reload_presenters').addEventListener('click', function() { getPresenters(); } );
 };
@@ -49,17 +50,20 @@ ws.onmessage = function(message) {
 		dispose();
 		break;
 	case 'iceCandidate':
-		webRtcPeer.addIceCandidate(parsedMessage.candidate)
+		webRtcPeer.addIceCandidate(parsedMessage.candidate);
 		break;
 	case 'getPresentersResponse':
-        var tr = $('<tr>');
-        parsedMessage.presenters.forEach(function (mock) {
-            tr.append('<td>' + mock.sessionID + '</td>');
-            tr.append('<td><a id="viewer" href="#">' + mock.name + '</a></td>');
-            tr.append('<td><a id="join" href="#" class="btn btn-primary">' + 'JOIN' + '</a></td>');
+        parsedMessage.presenters.forEach(function (present) {
+            var tr = $('<tr>');
+            var sessionID = present.sessionID;
+            var name = present.name;
+            tr.append('<td>' + sessionID + '</td>');
+            tr.append('<td><a id="viewer" href="#">' + name + '</a></td>');
+            tr.append('<td><a id="join" href="#" class="btn btn-primary" onclick="viewer(' + sessionID +')">' + 'JOIN' + '</a></td>');
+            var table = $('#presenters_table');
+            table.append(tr);
         });
-        var table = $('#presenters_table');
-        table.append(tr);
+
 		break;
 	default:
 		console.error('Unrecognized message', parsedMessage);
@@ -123,7 +127,11 @@ function onOfferPresenter(error, offerSdp) {
 	sendMessage(message);
 }
 
-function viewer() {
+function viewer(presentedID) {
+	if (presentedID) {
+        presenterSessionID = presentedID;
+	}
+
 	if (!webRtcPeer) {
 		showSpinner(video);
 
@@ -145,7 +153,8 @@ function onOfferViewer(error, offerSdp) {
 
 	var message = {
 		id : 'viewer',
-		sdpOffer : offerSdp
+		sdpOffer : offerSdp,
+		presenterID: presenterSessionID
 	};
 	sendMessage(message);
 }

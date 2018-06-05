@@ -124,7 +124,7 @@ wss.on('connection', function(ws) {
              }));
              break;
         case 'viewer':
-			startViewer(sessionId, ws, message.sdpOffer, function(error, sdpAnswer) {
+			startViewer(sessionId, ws, message.sdpOffer, message.presenterID, function(error, sdpAnswer) {
 				if (error) {
 					return ws.send(JSON.stringify({
 						id : 'viewerResponse',
@@ -277,25 +277,31 @@ function startPresenter(sessionID, presenterName, ws, sdpOffer, callback) {
 	});
 }
 
-function startViewer(sessionId, ws, sdpOffer, callback) {
+function startViewer(sessionId, ws, sdpOffer, presenterID, callback) {
 	clearCandidatesQueue(sessionId);
 
-	if (presenter === null) {
+	if (!(presenterID in presenters)) {
 		stop(sessionId);
 		return callback(noPresenterMessage);
 	}
 
-	presenter.pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
+	presenters[presenterID].pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
 		if (error) {
 			stop(sessionId);
 			return callback(error);
 		}
-		viewers[sessionId] = {
-			"webRtcEndpoint" : webRtcEndpoint,
-			"ws" : ws
-		};
 
-		if (presenter === null) {
+        if (!(presenterID in viewers)) {
+            viewers[presenterID] = {};
+        }
+
+		viewers[presenterID][sessionId] = {
+            "webRtcEndpoint" : webRtcEndpoint,
+            "ws" : ws
+        };
+		console.log(viewers);
+
+		if (!(presenterID in presenters)) {
 			stop(sessionId);
 			return callback(noPresenterMessage);
 		}
@@ -320,17 +326,17 @@ function startViewer(sessionId, ws, sdpOffer, callback) {
 				stop(sessionId);
 				return callback(error);
 			}
-			if (presenter === null) {
+			if (!(presenterID in presenters)) {
 				stop(sessionId);
 				return callback(noPresenterMessage);
 			}
 
-			presenter.webRtcEndpoint.connect(webRtcEndpoint, function(error) {
+            presenters[presenterID].webRtcEndpoint.connect(webRtcEndpoint, function(error) {
 				if (error) {
 					stop(sessionId);
 					return callback(error);
 				}
-				if (presenter === null) {
+				if (!(presenterID in presenters)) {
 					stop(sessionId);
 					return callback(noPresenterMessage);
 				}
@@ -354,8 +360,7 @@ function clearCandidatesQueue(sessionId) {
 }
 
 function stop(sessionId) {
-    console.log('presenters obj: ', presenters);
-	if (sessionId in presenters && presenters[sessionID].id == sessionId) {
+	if (sessionId in presenters && presenters[sessionId].id == sessionId) {
 		for (var i in viewers[sessionID]) {
 			var viewer = viewers[sessionId][i];
 			if (viewer.ws) {
@@ -365,8 +370,8 @@ function stop(sessionId) {
 			}
 		}
         presenters[sessionId].pipeline.release();
-        presenters[sessionId] = null;
-		viewers[sessionId] = [];
+        delete presenters[sessionId];
+		delete viewers[sessionId];
 	} else {
 		for (var presenterId in viewers) {
 			for (var viewerID in viewers[presenterId]) {
