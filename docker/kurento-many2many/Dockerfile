@@ -6,7 +6,7 @@ WORKDIR /src
 RUN npm install npm -g
 RUN npm install -g bower
 
-RUN git clone https://github.com/gnosis7bit/kurento-many2many-nodejs.git
+RUN git clone https://github.com/gnosis7bit/kurento-many2many-nodejs.git .
 
 COPY entrypoint.sh /
 
