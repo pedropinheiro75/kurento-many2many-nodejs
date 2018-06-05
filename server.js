@@ -46,8 +46,8 @@ var idCounter = 0;
 var candidatesQueue = {};
 var kurentoClient = null;
 var presenter = null;
-var presenters = [];
-var viewers = [];
+var presenters = {};
+var viewers = {};
 var noPresenterMessage = 'No active presenter. Try again later...';
 
 /*
@@ -79,7 +79,7 @@ wss.on('connection', function(ws) {
 	console.log('Connection received with sessionId ' + sessionId);
 
     ws.on('error', function(error) {
-        console.log('Connection ' + sessionId + ' error');
+        console.log('Connection ' + sessionId + ' error', error);
         stop(sessionId);
     });
 
@@ -96,6 +96,7 @@ wss.on('connection', function(ws) {
         case 'presenter':
 			startPresenter(sessionId, message.presenterName, ws, message.sdpOffer, function(error, sdpAnswer) {
 				if (error) {
+					console.log('error: ', error);
 					return ws.send(JSON.stringify({
 						id : 'presenterResponse',
 						response : 'rejected',
@@ -171,35 +172,40 @@ function getKurentoClient(callback) {
 function startPresenter(sessionID, presenterName, ws, sdpOffer, callback) {
 	clearCandidatesQueue(sessionID);
 
-	if (presenters[sessionID] !== null) {
-		stop(sessionID);
-		return callback("Another user is currently acting as presenter. Try again later ...");
-	}
+	// if (sessionID in presenters) {
+	// 	stop(sessionID);
+	// 	return callback("Another user is currently acting as presenter. Try again later ...");
+	// }
 
     presenters[sessionID] = {
 		id : sessionID,
 		pipeline : null,
-		webRtcEndpoint : null
+		webRtcEndpoint : null,
+		presenterName: presenterName
 	};
 
 	getKurentoClient(function(error, kurentoClient) {
 		if (error) {
+			console.log('error: ', error);
 			stop(sessionID);
 			return callback(error);
 		}
 
-		if (presenters[sessionID] === null) {
+		if (!(sessionID in presenters)) {
+			console.log('dfs');
 			stop(sessionID);
 			return callback(noPresenterMessage);
 		}
 
 		kurentoClient.create('MediaPipeline', function(error, pipeline) {
 			if (error) {
+                console.log('error: ', error);
 				stop(sessionID);
 				return callback(error);
 			}
 
-			if (presenters[sessionID] === null) {
+			if (!(sessionID in presenters)) {
+				console.log('sdas');
 				stop(sessionID);
 				return callback(noPresenterMessage);
 			}
@@ -207,11 +213,12 @@ function startPresenter(sessionID, presenterName, ws, sdpOffer, callback) {
             presenters[sessionID].pipeline = pipeline;
 			pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
 				if (error) {
+                    console.log('error: ', error);
 					stop(sessionID);
 					return callback(error);
 				}
 
-				if (presenters[sessionID] === null) {
+				if (!(sessionID in presenters)) {
 					stop(sessionID);
 					return callback(noPresenterMessage);
 				}
@@ -239,7 +246,7 @@ function startPresenter(sessionID, presenterName, ws, sdpOffer, callback) {
 						return callback(error);
 					}
 
-					if (presenters[sessionID] === null) {
+                    if (!(sessionID in presenters)) {
 						stop(sessionID);
 						return callback(noPresenterMessage);
 					}
@@ -274,7 +281,7 @@ function startViewer(sessionId, ws, sdpOffer, callback) {
 		viewers[sessionId] = {
 			"webRtcEndpoint" : webRtcEndpoint,
 			"ws" : ws
-		}
+		};
 
 		if (presenter === null) {
 			stop(sessionId);
@@ -335,31 +342,37 @@ function clearCandidatesQueue(sessionId) {
 }
 
 function stop(sessionId) {
-	if (presenter !== null && presenter.id == sessionId) {
-		for (var i in viewers) {
-			var viewer = viewers[i];
+    console.log('presenters obj: ', presenters);
+	if (sessionId in presenters && presenters[sessionID].id == sessionId) {
+		for (var i in viewers[sessionID]) {
+			var viewer = viewers[sessionId][i];
 			if (viewer.ws) {
 				viewer.ws.send(JSON.stringify({
 					id : 'stopCommunication'
 				}));
 			}
 		}
-		presenter.pipeline.release();
-		presenter = null;
-		viewers = [];
-
-	} else if (viewers[sessionId]) {
-		viewers[sessionId].webRtcEndpoint.release();
-		delete viewers[sessionId];
+        presenters[sessionId].pipeline.release();
+        presenters[sessionId] = null;
+		viewers[sessionId] = [];
+	} else {
+		for (var presenterId in viewers) {
+			for (var viewerID in viewers[presenterId]) {
+				if (viewerID == sessionId) {
+                    viewers[presenterId][viewerID].webRtcEndpoint.release();
+                    delete viewers[presenterId][viewerID];
+				}
+			}
+		}
 	}
 
 	clearCandidatesQueue(sessionId);
 
-	if (viewers.length < 1 && !presenter) {
-        console.log('Closing kurento client');
-        kurentoClient.close();
-        kurentoClient = null;
-    }
+    // if (viewers.length < 1 && !presenter) {
+    //     console.log('Closing kurento client');
+    //     kurentoClient.close();
+    //     kurentoClient = null;
+    // }
 }
 
 function onIceCandidate(sessionId, _candidate) {
