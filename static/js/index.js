@@ -55,12 +55,13 @@ ws.onmessage = function(message) {
 	case 'getPresentersResponse':
         parsedMessage.presenters.forEach(function (present) {
             var tr = $('<tr>');
+            var table = $('#presenters_table');
+            table.find("tr:not(:first)").remove();
             var sessionID = present.sessionID;
             var name = present.name;
             tr.append('<td>' + sessionID + '</td>');
             tr.append('<td><a id="viewer" href="#">' + name + '</a></td>');
             tr.append('<td><a id="join" href="#" class="btn btn-primary" onclick="viewer(' + sessionID +')">' + 'JOIN' + '</a></td>');
-            var table = $('#presenters_table');
             table.append(tr);
         });
 
