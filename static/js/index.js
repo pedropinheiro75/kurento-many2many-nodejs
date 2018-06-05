@@ -23,21 +23,19 @@ window.onload = function() {
 	console = new Console();
 	video = document.getElementById('video');
 
-    document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
-    document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
-    document.getElementById('join').addEventListener('click', function() { viewer(); } );
-    document.getElementById('terminate').addEventListener('click', function() { stop(); } );
-
-	var mock = [{sessionID:1,name:"pedro"}];
-	// Presenters table
-	var table = $('#presenters_table');
     var tr = $('<tr>');
-	mock.forEach(function (mock) {
+    [{sessionID:1,name:"pedro"}].forEach(function (mock) {
         tr.append('<td>' + mock.sessionID + '</td>');
         tr.append('<td><a id="viewer" href="#">' + mock.name + '</a></td>');
         tr.append('<td><a id="join" href="#" class="btn btn-primary">' + 'JOIN' + '</a></td>');
 	});
+    var table = $('#presenters_table');
     table.append(tr);
+
+    document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
+    document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
+    document.getElementById('join').addEventListener('click', function() { viewer(); } );
+    document.getElementById('terminate').addEventListener('click', function() { stop(); } );
 };
 
 window.onbeforeunload = function() {
@@ -106,6 +104,8 @@ function presenter() {
 function onOfferPresenter(error, offerSdp) {
     if (error) return onError(error);
 
+	console.log('log pedro ' + document.getElementById('presenter_name').value);
+
 	var message = {
 		id : 'presenter',
 		sdpOffer : offerSdp,
@@ -147,7 +147,7 @@ function onIceCandidate(candidate) {
 	   var message = {
 	      id : 'onIceCandidate',
 	      candidate : candidate
-	   }
+	   };
 	   sendMessage(message);
 }
 
@@ -155,7 +155,7 @@ function stop() {
 	if (webRtcPeer) {
 		var message = {
 				id : 'stop'
-		}
+		};
 		sendMessage(message);
 		dispose();
 	}
