@@ -24,7 +24,7 @@ window.onload = function() {
 	console = new Console();
 	video = document.getElementById('video');
 
-    getPresenters();
+    // getPresenters();
 
     document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
     document.getElementById('terminate').addEventListener('click', function() { stop(); } );
@@ -59,9 +59,9 @@ ws.onmessage = function(message) {
             table.find("tr:not(:first)").remove();
             var sessionID = present.sessionID;
             var name = present.name;
-            tr.append('<td>' + sessionID + '</td>');
-            tr.append('<td><a id="viewer" href="#">' + name + '</a></td>');
-            tr.append('<td><a id="join" href="#" class="btn btn-primary" onclick="viewer(' + sessionID +')">' + 'JOIN' + '</a></td>');
+            tr.append('<td><a>' + sessionID + '</a></td>');
+            tr.append('<td><a>' + name + '</a></td>');
+            tr.append('<td><a class="btn btn-primary" onclick="viewer(' + sessionID +')">' + 'JOIN' + '</a></td>');
             table.append(tr);
         });
 
