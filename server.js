@@ -110,7 +110,19 @@ wss.on('connection', function(ws) {
 				}));
 			});
 			break;
-
+        case 'getPresenters':
+             var allPresenters = [];
+             for (var presenter in presenters) {
+                 allPresenters.push({
+                     sessionID: presenters[presenter].id,
+                     name: presenters[presenter].presenterName
+                 })
+             }
+             ws.send(JSON.stringify({
+                 id: 'getPresentersResponse',
+                 presenters: allPresenters
+             }));
+             break;
         case 'viewer':
 			startViewer(sessionId, ws, message.sdpOffer, function(error, sdpAnswer) {
 				if (error) {

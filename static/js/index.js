@@ -23,19 +23,11 @@ window.onload = function() {
 	console = new Console();
 	video = document.getElementById('video');
 
-    var tr = $('<tr>');
-    [{sessionID:1,name:"pedro"}].forEach(function (mock) {
-        tr.append('<td>' + mock.sessionID + '</td>');
-        tr.append('<td><a id="viewer" href="#">' + mock.name + '</a></td>');
-        tr.append('<td><a id="join" href="#" class="btn btn-primary">' + 'JOIN' + '</a></td>');
-	});
-    var table = $('#presenters_table');
-    table.append(tr);
-
     document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
-    document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
-    document.getElementById('join').addEventListener('click', function() { viewer(); } );
+    // document.getElementById('viewer').addEventListener('click', function() { viewer(); } );
+    // document.getElementById('join').addEventListener('click', function() { viewer(); } );
     document.getElementById('terminate').addEventListener('click', function() { stop(); } );
+    document.getElementById('reload_presenters').addEventListener('click', function() { getPresenters(); } );
 };
 
 window.onbeforeunload = function() {
@@ -59,10 +51,27 @@ ws.onmessage = function(message) {
 	case 'iceCandidate':
 		webRtcPeer.addIceCandidate(parsedMessage.candidate)
 		break;
+	case 'getPresentersResponse':
+        var tr = $('<tr>');
+        parsedMessage.presenters.forEach(function (mock) {
+            tr.append('<td>' + mock.sessionID + '</td>');
+            tr.append('<td><a id="viewer" href="#">' + mock.name + '</a></td>');
+            tr.append('<td><a id="join" href="#" class="btn btn-primary">' + 'JOIN' + '</a></td>');
+        });
+        var table = $('#presenters_table');
+        table.append(tr);
+		break;
 	default:
 		console.error('Unrecognized message', parsedMessage);
 	}
 };
+
+function getPresenters() {
+	var message = {
+		id: 'getPresenters'
+	};
+    sendMessage(message);
+}
 
 function presenterResponse(message) {
 	if (message.response != 'accepted') {
