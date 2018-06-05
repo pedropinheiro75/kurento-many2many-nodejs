@@ -1,6 +1,6 @@
 version: '3'
 services:
-  kurento-nodejs-many2many:
+  kurento-many2many:
     environment:
       - KURENTO_MEDIA_SERVER_HOST
       - KURENTO_MEDIA_SERVER_PORT
