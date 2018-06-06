@@ -26,7 +26,10 @@ window.onload = function() {
 
     // getPresenters();
 
-    document.getElementById('presenter_form').addEventListener('submit', function() { presenter(); } );
+    document.getElementById('presenter_form').addEventListener('submit', function(event) {
+    	event.preventDefault();
+    	presenter();
+    });
     document.getElementById('terminate').addEventListener('click', function() { stop(); } );
     document.getElementById('reload_presenters').addEventListener('click', function() { getPresenters(); } );
 };
@@ -53,10 +56,10 @@ ws.onmessage = function(message) {
 		webRtcPeer.addIceCandidate(parsedMessage.candidate);
 		break;
 	case 'getPresentersResponse':
+        var table = $('#presenters_table');
+        table.find("tr:not(:first)").remove();
         parsedMessage.presenters.forEach(function (present) {
             var tr = $('<tr>');
-            var table = $('#presenters_table');
-            table.find("tr:not(:first)").remove();
             var sessionID = present.sessionID;
             var name = present.name;
             tr.append('<td><a>' + sessionID + '</a></td>');
